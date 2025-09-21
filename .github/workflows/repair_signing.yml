@@ -1,0 +1,42 @@
+name: Repair Signing (create fresh certs & profiles)
+
+on:
+  workflow_dispatch:   # <-- macht den Workflow manuell startbar im Actions-Tab
+
+jobs:
+  repair:
+    runs-on: macos-14
+
+    env:
+      MATCH_READONLY: "false"
+      MATCH_GENERATE_APPLE_CERTS: "true"
+      MATCH_FORCE_FOR_NEW_CERTIFICATES: "true"
+      MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+      MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+
+      # falls du die App Store Connect API Keys schon hast:
+      APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      APP_STORE_CONNECT_API_KEY_CONTENT: ${{ secrets.ASC_PRIVATE_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.3'
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: Install fastlane
+        run: gem install fastlane --no-document
+
+      - name: Regenerate certs & profiles (App Store)
+        run: |
+          bundle exec fastlane match appstore --generate_apple_certs true --force --verbose
